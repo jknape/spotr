@@ -98,6 +98,8 @@ index = function(object, newdata, timevar, ...,  byvar = NULL,  type = "group", 
   if (identical(type, "group")) {
     baseKey = groupInd[["key"]] * pmin(1, match(newdata[[timevar]], baseline)) # Integer from 1 to nbaselines, NA is skipped.
     baseInd = groupInd[["key"]]
+  #  browser(), Fix if no observations matching baseline
+    baseInd[!baseInd %in% baseKey] = NA
     nbase = length(baseline)
   }
 

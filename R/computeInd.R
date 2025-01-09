@@ -50,7 +50,8 @@ computeind = function(object, rowIndex, newdata, weights, bweights, alpha, type,
   }
   out = indexStats(indMat, alpha = alpha, baseline = baseMat[outInd$baseInd, , drop = FALSE], pointestimate = opt$pointestimate)
   att.ci = attr(out, "ci")
-  out = as.data.frame(cbind(outInd[1], out))
+  keep = setdiff(colnames(outInd), c("baseInd", "key"))
+  out = as.data.frame(cbind(outInd[keep], out))
   attr(out, "ci") = att.ci
   out
 }
