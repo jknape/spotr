@@ -1,7 +1,7 @@
 computeind = function(object, rowIndex, newdata, weights, bweights, alpha, type, opt, ...) {
   stopifnot(all(c(nrow(rowIndex), length(weights)) == nrow(newdata)))
 
-  maxMatSize = 5e7L
+  # maxMatSize = 5e7L
   nsamp = opt$nsamp
 
   nd = nrow(newdata)

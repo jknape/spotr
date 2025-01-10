@@ -179,6 +179,18 @@ index = function(object, newdata, timevar, ...,  byvar = NULL,  type = "group", 
   dataInd$baseKey = baseKey
   attr(dataInd, "nbase") = nbase
 
+  # Check for balance of weights
+  if (length(unique(dataInd$baseInd)) < 2) {
+    tweights = tapply(weights, dataInd$key, sum)
+    if (length(unique(tweights)) != 1) {
+      warning("Total weights or number of prediction points differ across time points.")
+    }
+  } else {
+    tweights = tapply(weights, list(dataInd$key, dataInd$baseInd), sum)
+    if (!all(sapply(apply(tweights, 2, unique, simplify = FALSE), length) == 2)) {
+      warning("Total weights or number of prediction points differ across time points in at least one group.")
+    }
+  }
 
 
   opt = getSampOptions(object, nsamp, ...)
