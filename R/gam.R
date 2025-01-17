@@ -1,6 +1,6 @@
 #' @export
 checkFamily.gam = function(object) {
-  family = family(object)
+  family = object$family
   if (!identical(family$link, "log")) { # Should allow other links. Also allow transformed responses?
     stop("Only log links are currently allowed.")
   }
@@ -9,8 +9,10 @@ checkFamily.gam = function(object) {
 
 #' @export
 checkModel.gam = function(object) {
-  if (object$rank < length(coef(object))) {
-    warning('Model is rank deficient.')
+  if (!is.null(object$rank)) {
+    if (object$rank < length(coef(object))) {
+      warning('Model is rank deficient.')
+    }
   }
 }
 
@@ -96,6 +98,33 @@ getMu.gam.extractor = function(object, newdata, ...) {
   }
   mu
 }
+
+#' @export
+checkFamily.gamm = function(object) {
+  checkFamily(object[["gam"]])
+}
+
+#' @export
+checkModel.gamm = function(object) {
+  # Check PQL etc?
+  checkModel(object[["gam"]])
+}
+
+#' @export
+checkNewdata.gamm = function(object, newdata, timevar, ...) {
+  checkNewdata(object[["gam"]], newdata, timevar, ...)
+}
+
+#' @export
+getSampOptions.gamm = function(object, nsamp, ...) {
+  getSampOptions(object[["gam"]], nsamp, ...)
+}
+
+#' @export
+getExtractor.gamm = function(object, opt, ...) {
+  getExtractor(object[["gam"]], opt, ...)
+}
+
 
 # Should work with both gam and gam.prefit
 getGamCols = function(object) {
