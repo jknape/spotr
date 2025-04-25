@@ -27,7 +27,7 @@ getExtractor.brmsfit = function(object, ...)  {
 #' @export
 getSampOptions.brmsfit = function(object, nsamp, ...) {
   if (!is.null(nsamp)) {
-    writeLines("nsamp ignored for brms models, use argument ndraws to adjust number of samples")
+    message("nsamp ignored for brms models, use argument ndraws to adjust number of samples")
   }
   dots = list(...)
   nsamp = brms::ndraws(object)

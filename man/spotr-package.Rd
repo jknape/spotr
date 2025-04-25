@@ -6,7 +6,7 @@
 \alias{spotr-package}
 \title{spotr: Estimate Spatial Population Indices from Ecological Abundance Data}
 \description{
-Compute relative or absolute population trends across space using predictions from models fitted to ecological population abundance data. The package supports models fitted by 'mgcv' and 'brms', and draws from posterior predictive distributions.
+Compute relative or absolute population trends across space and time using predictions from models fitted to ecological population abundance data, as described in Knape (2025) \doi{10.1016/j.ecolind.2025.113435}. The package supports models fitted by 'mgcv' or 'brms', and draws from posterior predictive distributions.
 }
 \author{
 \strong{Maintainer}: Jonas Knape \email{jonas.knape@slu.se} (\href{https://orcid.org/0000-0002-8012-5131}{ORCID})

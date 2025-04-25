@@ -1,0 +1,11 @@
+bibentry(
+  bibtype  = "Article",
+  title    = "Spatially varying population indices",
+  author   = "Jonas Knape",
+  journal  = "Ecological Indicators",
+  year     = 2025,
+  volume   = "174",
+  number   = "",
+  pages    = "113435",
+  doi      = "10.1016/j.ecolind.2025.113435"
+)

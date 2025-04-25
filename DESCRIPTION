@@ -1,11 +1,11 @@
 Package: spotr
 Title: Estimate Spatial Population Indices from Ecological Abundance Data
-Version: 0.1
+Version: 0.1.0
 Authors@R: 
-    person("Jonas", "Knape", , "jonas.knape@slu.se", role = c("aut", "cre"),
+    person("Jonas", "Knape", email ="jonas.knape@slu.se", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-8012-5131"))
-Description: Compute relative or absolute population trends across space using predictions from models fitted to ecological population abundance data.
-             The package supports models fitted by 'mgcv' and 'brms', and draws from posterior predictive distributions.
+Description: Compute relative or absolute population trends across space and time using predictions from models fitted to ecological population abundance data, as described in 
+             Knape (2025) <doi:10.1016/j.ecolind.2025.113435>. The package supports models fitted by 'mgcv' or 'brms', and draws from posterior predictive distributions. 
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -26,7 +26,7 @@ Imports:
     mgcv,
     Rcpp
 Depends: 
-    R (>= 2.10)
+    R (>= 3.6.0)
 LazyData: true
 Config/Needs/website: rmarkdown
 VignetteBuilder: knitr

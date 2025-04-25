@@ -1,7 +1,7 @@
 #' Compute scaled or absolute population indices from a fitted model object, or from posterior samples.
 #'
 #' @param object A matrix or an object of class gam or brmsfit. If a matrix, columns should correspond to
-#'               (posterior) samples of predictions and rows should match the rows in newdata.
+#'               (posterior) samples of abundance predictions and rows should match the rows in newdata.
 #' @param timevar The name of the time variable in newdata over which an index should be computed.
 #' @param byvar Name of grouping variable in newdata. The default is NULL in which case a single index is computed.
 #'              If not null an index is computed for each unique value of the grouping variable.
@@ -16,8 +16,8 @@
 #'                 computed relative to the global baseline. If "delta", indices for each group are computed relative to
 #'                 the previous time point. If "raw", absolute (as opposed to relative) indices are computed.
 #' @param weights  Weights for prediction points.
-#' @param bweights Weights for the baseline, if different from target weights. If the argument is NULL and
-#'                 there are multiple time points in the baseline, the average is taken (assumes newdata is balanced).
+#' @param bweights Weights for the baseline. If the argument is NULL, the baseline weights are set to be equal to the weights for
+#'                 the prediction points divided by the number of time points in the baseline (this assumes that newdata is balanced).
 #' @param baseline A set of time points that should be used as baseline for indices of type "group" or "global".
 #'                 The mean of the index over these time points will be one (see Knape 2023).
 #'                 If missing, the first time point will be used as the baseline.
@@ -28,6 +28,11 @@
 #'
 #'
 #' @details
+#'
+#' The function computes spatio-temporal indices of relative population size using post-stratification of model based predictions, as detailed in Knape (2025).
+#' This is done by summing (weighted) predicted abundances across the prediction grid defined by newdata for the numerator and denominator of the relative index.
+#'
+#'
 #' ## Warning
 #' Large prediction tasks can require substantial memory. Use less rows in newdata,
 #' and/or fewer simulation samples to reduce memory footprint.
@@ -50,6 +55,8 @@
 #'
 #' @references{Knape, J. (2023). Effects of choice of baseline on the uncertainty of population and biodiversity indices.
 #'                               Environmental and Ecological Statistics, 30, 1--16. \doi{10.1007/s10651-022-00550-7}}
+#' @references{Knape, J. (2025). Spatially varying population indices.
+#'                               Ecological Indicators, 174, 113435. \doi{10.1016/j.ecolind.2025.113435}}
 index = function(object, newdata, timevar, ...,  byvar = NULL,  type = "group", weights = NULL, bweights = NULL, baseline = NULL, alpha = c(.8, .95), nsamp = NULL) {
   type = match.arg(type, c("group", "global", "delta", "raw"))
 
@@ -120,7 +127,7 @@ index = function(object, newdata, timevar, ...,  byvar = NULL,  type = "group", 
     baseInd = (length(sortTimes) - 1)*(groupInd[["key"]] - 1) + match(newdata[[timevar]], sortTimes[-1])
     nbase = 1
     if (!is.null(baseline)) {
-      writeLines("baseline argument not used with type = \"delta\", ignored")
+      message("baseline argument not used with type = \"delta\", ignored")
     }
   }
 
@@ -129,7 +136,7 @@ index = function(object, newdata, timevar, ...,  byvar = NULL,  type = "group", 
     baseInd = NULL
     baseKey = NULL
     if (!is.null(baseline)) {
-      writeLines("baseline argument not used with type = \"raw\", ignored")
+      message("baseline argument not used with type = \"raw\", ignored")
     }
     nbase = 0
   }

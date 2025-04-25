@@ -7,12 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE
-   #comment = "#>"
-)
-```
+## Preparation
 
 First load some packages needed for fitting models and producing plots.
 ```{r setup, message=FALSE}
@@ -24,69 +19,69 @@ library(ggplot2)
 library(dplyr)
 ```
 
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  fig.width = 5
+)
+```
+
+
 Next load the data for the case study. 
-They data are distributed with `spotr` and consists of 20 years of monitoring data of the common cuckoo in Sweden.
+The data are distributed with `spotr` and consists of 20 years of monitoring data of the common cuckoo in Sweden.
 
 ```{r}
 data(cuckoo)
 head(cuckoo)
 ```
 
-Transform the data into an `sp` object for plotting and for spatial manipulation.
+Transform the data into an `sf` object for plotting and for spatial manipulation.
 Also load the map of Sweden contained in the package.
-```{r}
+```{r, fig.height = 7}
 cuckoo = st_as_sf(cuckoo, coords = c("lon", "lat"), crs = st_crs(4326), remove = FALSE)
 data(swe_map)
 ```
 
 Plot the data for an example year
-```{r}
-ggplot(swe_map) +  geom_sf() + geom_sf(aes(col = count), data = subset(cuckoo, yr == 2010)) + theme_minimal()
+```{r, fig.height = 7}
+ggplot(swe_map) +  geom_sf() + geom_sf(aes(col = count), data = subset(cuckoo, yr == 2010)) 
 ```
 
 To compute indices a model that can generate predictions of abundances across time and space is needed.
-For example, a tensor product of a temporal and a spatial smooth can be fit with `mgcv`
+For example, a tensor product of a temporal and a spatial smooth can be fit with `mgcv`:
 ```{r}
 gam_fit = gam(count ~ te(yr, lat, lon, d = c(1,2), k = c(8,30)), data = cuckoo, family = nb())
 ```
+
+
+## Prediction grid
 
 A data frame containing the spatial locations as well as any variables needed for predicting from the model is now needed.
 If there are no spatio-temporal explanatory variables, as in the model above, the data frame may be defined from the combination of a data frame containing a spatial grid and a data frame containing temporal variables.
 
 First define a spatial grid. 
-```{r}
-spat_grid = st_make_grid(cuckoo, cellsize = .5, what = "centers") |> 
-  st_intersection(swe_map) |> st_as_sf()
-ggplot(swe_map) + geom_sf() + geom_sf(data = spat_grid) + theme_minimal()
-```
-
-To avoid predicting far out of the range of the species, one can restrict the spatial grid to the convex hull of the observed range.
-The cuckoo occurs throughout Sweden so the effect is small, but it could be important for other species.
-```{r}
-spat_grid = st_intersection(spat_grid, st_convex_hull(st_union(cuckoo)))
-ggplot(swe_map) + geom_sf() + geom_sf(data = spat_grid) + theme_minimal()
-
-# Only need coordinates
-spat_grid = as.data.frame(st_coordinates(spat_grid))
-colnames(spat_grid) = c("lon", "lat")
+```{r, fig.height = 7}
+spat_grid = st_make_grid(cuckoo, cellsize = .5, what = "centers") |> st_sf() |>
+  st_intersection(swe_map)
+# Add columns with longitude and latitude
+spat_grid[, c("lon", "lat")] = st_coordinates(spat_grid)
+ggplot(swe_map) + geom_sf() + geom_sf(data = spat_grid)
 ```
 
 The grid now contains at least one point for each county in the map, which will be important later when producing county-wise indices.
   
-Then define the temporal grid. The model only contains one temporal variable.
-
+To create a spatio-temporal grid we combine the spatial grid with a temporal grid containing the one temporal variable `yr`.
 ```{r}
-temp_grid = data.frame(yr = 2000:2020)
+pred_points = merge(data.frame(yr = 2000:2020), spat_grid, by = NULL)
 ```
 
-Now combine the spatial and temporal grids using `merge`.
+This results in a prediction grid that is balanced across space and time, i.e. each time point occurs the same number of times in the grid, as does each
+spatial point.
 
-```{r}
-pred_points = merge(temp_grid, spat_grid, by = NULL)
-```
+## National indices
 
 The spatio-temporal grid can now be used to compute an index for the total Swedish population.
-The result is a data frame with an index for each year and uncertainty estimates.
+The result is a data frame with an index for each year and corresponding uncertainty estimates.
 
 ```{r}
 swe_ind = index(gam_fit, timevar = "yr", newdata = pred_points)
@@ -95,7 +90,10 @@ head(swe_ind)
 
 ```{r}
 swe_ind |> 
-  ggplot(aes(x = yr, y = index, ymin = ci_2.5, ymax = ci_97.5)) + geom_ribbon(fill = "blue", alpha = .3) + geom_line() + theme_minimal()
+  ggplot(aes(x = yr, y = index)) + 
+  geom_linerange(aes(ymin = ci_2.5, ymax = ci_97.5), col = "gray50") + 
+  geom_linerange(aes(ymin = ci_10, ymax = ci_90), col = "red3", lwd =1) +
+  geom_point() + ylim(.8,1.2)
 ```
 
 Confidence intervals for the index are fairly wide. 
@@ -104,9 +102,80 @@ One can instead use the mean abundance over a sequence of years as the baseline 
 
 ```{r}
 index(gam_fit, timevar = "yr", newdata = pred_points, baseline = 2000:2010) |> 
-  ggplot(aes(x = yr, y = index, ymin = ci_2.5, ymax = ci_97.5)) + geom_ribbon(fill = "blue", alpha = .3) + geom_line() + theme_minimal()
+  ggplot(aes(x = yr, y = index)) +   
+  geom_linerange(aes(ymin = ci_2.5, ymax = ci_97.5), col = "gray50") + 
+  geom_linerange(aes(ymin = ci_10, ymax = ci_90), col = "red3", lwd =1) +
+  geom_point() + ylim(.8,1.2)
 ```
 
 This results in lower uncertainty because the mean over 2000 - 2010 can be more accurately estimated.
 
 
+## Growth rates
+
+Instead of estimating an index relative to a baseline year or period, the growth rate between consecutive years can be estimated by setting `type = "delta"`.
+```{r}
+index(gam_fit, timevar = "yr", newdata = pred_points, type = "delta") |> 
+  ggplot(aes(x = yr, y = index)) +   
+  geom_linerange(aes(ymin = ci_2.5, ymax = ci_97.5), col = "gray50") + 
+  geom_linerange(aes(ymin = ci_10, ymax = ci_90), col = "red3", lwd =1) +
+  geom_point() 
+```
+
+Note that the index for each year here corresponds to the estimated growth rate between that year and the previous year. 
+E.g., the index for year 2005 is the change in abundance in year 2005 compared to 2004.
+
+
+## Indices by group
+
+Using the `byvar` argument of `index`, indices within groups can be computed. 
+This can be used for example to compute indices for each county:
+```{r, fig.height = 10, fig.width=7}
+index(gam_fit, timevar = "yr", byvar = "county", newdata = pred_points, baseline = 2000:2010) |> 
+  ggplot(aes(x = yr, y = index, ymin = ci_2.5, ymax = ci_97.5)) +   
+  geom_linerange(aes(ymin = ci_2.5, ymax = ci_97.5), col = "gray50") + 
+  geom_linerange(aes(ymin = ci_10, ymax = ci_90), col = "red3", lwd = 1) +
+  geom_point(size=.5) + 
+  scale_x_continuous(breaks = c(2005,2015)) + facet_wrap(vars(county))
+```
+
+The indices above are scaled relative to the mean across 2000-2010 *within* each county. 
+This means that information about relative abundance *between* counties is lost.
+To display such differences the argument `type` can be set to `"global"`.
+The indices then are computed by aggregation of abundances within each county in the numerator, but aggregating across the whole grid in the denominator.
+The indices then represent the abundance in the counties relative to the total abundance in the baseline period.
+```{r, fig.height = 10, fig.width=7}
+index(gam_fit, timevar = "yr", byvar = "county", newdata = pred_points, baseline = 2000:2010, type = "global") |> 
+  ggplot(aes(x = yr, y = index, ymin = ci_2.5, ymax = ci_97.5)) +   
+  geom_linerange(aes(ymin = ci_2.5, ymax = ci_97.5), col = "gray50") + 
+  geom_linerange(aes(ymin = ci_10, ymax = ci_90), col = "red3", lwd = 1) +
+  geom_point(size=.5) + 
+  scale_x_continuous(breaks = c(2005,2015)) + facet_wrap(vars(county))
+```
+The results here suggest that the northernmost county, Norrbotten, which is also the largest county, contains 20-30% of the Swedish population (with the period 2000-2010 as the reference).
+
+The above indices clearly depend on the size of the county. 
+It could be of interest to instead compare population density across counties and time.
+This can be done by supplying weights to the `index` function.
+Two sets of weights can be specified, one for the numerator (argument `weights`) and one for the denominator (argument `bweights`).
+For the numerator, we use the inverse of the number of spatial grid points within each county so that the summed weighted abundance across the county is the within county density.
+For the denominator we use the inverse of the total number of spatial grid points times the number time points as the weights, so that the reference is the averaged density across the whole of Sweden in the baseline period.
+
+
+```{r, fig.height = 10, fig.width=7}
+# Count number of predictions points per county 
+pred_points = pred_points |> group_by(county, yr) |> mutate(ppc = n())
+w = 1/pred_points$ppc
+
+# Denominator weights
+bw = 1/(nrow(spat_grid) * length(2000:2010))
+  
+index(gam_fit, timevar = "yr", byvar = "county", newdata = pred_points, weights = w, bweights = bw, baseline = 2000:2010, type = "global")  |> 
+  ggplot(aes(x = yr, y = index, ymin = ci_2.5, ymax = ci_97.5)) +   
+  geom_linerange(aes(ymin = ci_2.5, ymax = ci_97.5), col = "gray50") + 
+  geom_linerange(aes(ymin = ci_10, ymax = ci_90), col = "red3", lwd = 1) +
+  geom_point(size=.5) + 
+  scale_x_continuous(breaks = c(2005,2015)) + facet_wrap(vars(county))
+```
+This suggests e.g. that the density in Kalmar is around 50% larger then the national density, and that the 
+density in Västra Götaland is around half of the national density.

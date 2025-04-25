@@ -27,7 +27,7 @@ getExtractor.matrix = function(object, ...)  {
 #' @export
 getSampOptions.matrix = function(object, nsamp, ...) {
   if (!is.null(nsamp)) {
-    writeLines("Using all columns in matrix, nsamp ignored.")
+    message("Using all columns in matrix, nsamp ignored.")
   }
   list(pointestimate = "mean", allow_batch = FALSE, nsamp = ncol(object))
 }

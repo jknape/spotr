@@ -22,7 +22,7 @@ checkNewdata.gam = function(object, newdata, timevar, ...) {
 
   gvars = getGamCols(object)
 
-  oix = sapply(gvars, \(x) {x[["type"]]}) == "offset"
+  oix = sapply(gvars, FUN = function(x) {x[["type"]]}) == "offset"
   if (any(oix)) {
     offsvars = gvars[[which(oix)]][["vars"]]
   } else {
@@ -41,7 +41,7 @@ checkNewdata.gam = function(object, newdata, timevar, ...) {
     if (v %in% offsvars) {
       warning(paste0("Missing offset ", v, " set to ", nv,", treated as constant for prediction."))
     } else {
-      writeLines(paste0("Missing variable ", v, " set to ", nv,", treated as constant for prediction."))
+      message(paste0("Missing variable ", v, " set to ", nv,", treated as constant for prediction."))
     }
   }
   getInteractions = function(x) {
